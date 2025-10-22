@@ -1,0 +1,5 @@
+{
+  "name": "Trích xuất Mã nguồn Dự án",
+  "description": "Một công cụ web thông minh để phân tích dự án, tự động phát hiện công nghệ, lọc các tệp không cần thiết, tạo cây thư mục và kết hợp mã nguồn thành một tệp duy nhất.",
+  "requestFramePermissions": []
+}
