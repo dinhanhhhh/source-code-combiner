@@ -1,11 +1,15 @@
 import React from 'react';
 import { CopyIcon, DownloadIcon } from './icons';
+import FormatSelector from './FormatSelector';
+import type { ExportFormat } from '../types';
 
 interface ActionButtonsProps {
   onCopyToClipboard: () => void;
   onDownload: () => void;
   combinedContent: string;
   copySuccess: string;
+  selectedFormat: ExportFormat;
+  onFormatChange: (format: ExportFormat) => void;
   t: any; // Type for translations object
 }
 
@@ -14,6 +18,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   onDownload,
   combinedContent,
   copySuccess,
+  selectedFormat,
+  onFormatChange,
   t,
 }) => (
   <>
@@ -22,6 +28,12 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         {copySuccess}
       </span>
     )}
+    <FormatSelector
+      selectedFormat={selectedFormat}
+      onFormatChange={onFormatChange}
+      t={t}
+      disabled={!combinedContent}
+    />
     <button
       onClick={onCopyToClipboard}
       disabled={!combinedContent}
@@ -42,3 +54,4 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
 );
 
 export default ActionButtons;
+

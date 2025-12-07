@@ -1,8 +1,8 @@
-
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import type { SelectedFile } from "./types";
+import type { SelectedFile, ExportFormat } from "./types";
 import { translations } from "./i18n";
 import { PREVIEW_SIZE_LIMIT, TECH_MARKERS, TECH_WHITELIST, SENSITIVE_PATTERNS } from "./constants";
+import { formatContent, getFileExtension, getMimeType } from "./utils/export-formatters";
 import { useMediaQuery } from "./hooks/useMediaQuery";
 import {
   buildIgnoreSets,
@@ -32,6 +32,7 @@ const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>("vi");
   const [logs, setLogs] = useState<string[]>([]);
   const [rootDirectoryName, setRootDirectoryName] = useState<string>("");
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('txt');
   const [activeTab, setActiveTab] = useState<"configure" | "preview">(
     "configure"
   );
@@ -299,29 +300,32 @@ const App: React.FC = () => {
     const tree = generateDirectoryTree(selectedFiles);
     addLog(t.logs.combiningContent);
 
-    const parts: string[] = [];
-    const header = `${t.outputHeader}\n\n${tree}\n\n${"=".repeat(80)}\n\n`;
-    parts.push(header);
-
+    // Read all file contents
+    const fileContents: string[] = [];
     for (const f of selectedFiles) {
       addLog(t.logs.savingFile(f.name));
-      const fileHeader = `// START OF FILE: ${f.name}\n\n`;
-      const fileFooter = `\n\n// END OF FILE: ${f.name}\n\n`;
-      
-      parts.push(fileHeader);
       try {
         const content = await f.file.text();
-        parts.push(content);
+        fileContents.push(content);
       } catch (e) {
         const errorMsg = e instanceof Error ? e.message : String(e);
-        parts.push(`Error reading file: ${errorMsg}`);
+        fileContents.push(`Error reading file: ${errorMsg}`);
       }
-      parts.push(fileFooter);
     }
+
+    // Format content based on selected format
+    const projectName = rootDirectoryName || 'project';
+    const formattedContent = formatContent(
+      exportFormat,
+      selectedFiles,
+      fileContents,
+      tree,
+      projectName,
+      t.outputHeader
+    );
     
-    const blob = new window.Blob(parts, { type: "text/plain;charset=utf-8" });
-    const contentForLineCount = parts.join('');
-    const lines = contentForLineCount.split('\n').length;
+    const blob = new window.Blob([formattedContent], { type: getMimeType(exportFormat) });
+    const lines = formattedContent.split('\n').length;
     const fileCount = selectedFiles.length;
     const size = formatBytes(blob.size);
     addLog(t.logs.stats(fileCount, size, lines));
@@ -329,28 +333,44 @@ const App: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${rootDirectoryName || "all"}.txt`;
+    a.download = `${projectName}${getFileExtension(exportFormat)}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     addLog(t.logs.downloaded);
     setIsLoading(false);
-  }, [selectedFiles, addLog, t.logs, t.outputHeader, rootDirectoryName]);
+  }, [selectedFiles, addLog, t.logs, t.outputHeader, rootDirectoryName, exportFormat]);
 
-  const handleDownload = useCallback(() => {
-    if (!combinedContent) return;
-    const blob = new window.Blob([combinedContent], { type: "text/plain;charset=utf-8" });
+  const handleDownload = useCallback(async () => {
+    if (selectedFiles.length === 0) return;
+    
+    const tree = generateDirectoryTree(selectedFiles);
+    const fileContents = await Promise.all(
+      selectedFiles.map(f => f.file.text().catch(e => `Error reading ${f.name}: ${e.message}`))
+    );
+    
+    const projectName = rootDirectoryName || 'project';
+    const formattedContent = formatContent(
+      exportFormat,
+      selectedFiles,
+      fileContents,
+      tree,
+      projectName,
+      t.outputHeader
+    );
+    
+    const blob = new window.Blob([formattedContent], { type: getMimeType(exportFormat) });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${rootDirectoryName || "all"}.txt`;
+    a.download = `${projectName}${getFileExtension(exportFormat)}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     addLog(t.logs.downloaded);
-  }, [combinedContent, addLog, t.logs, rootDirectoryName]);
+  }, [selectedFiles, addLog, t.logs, rootDirectoryName, exportFormat, t.outputHeader]);
 
   const handleCopyToClipboard = useCallback(() => {
     if (!combinedContent) return;
@@ -406,6 +426,8 @@ const App: React.FC = () => {
                       t={t}
                       combinedContent={combinedContent}
                       copySuccess={copySuccess}
+                      selectedFormat={exportFormat}
+                      onFormatChange={setExportFormat}
                       onCopyToClipboard={handleCopyToClipboard}
                       onDownload={handleDownload}
                     />
@@ -478,6 +500,8 @@ const App: React.FC = () => {
               t={t}
               combinedContent={combinedContent}
               copySuccess={copySuccess}
+              selectedFormat={exportFormat}
+              onFormatChange={setExportFormat}
               onCopyToClipboard={handleCopyToClipboard}
               onDownload={handleDownload}
             />

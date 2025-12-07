@@ -4,3 +4,5 @@ export interface SelectedFile {
   file: File;
   size: number;
 }
+
+export type ExportFormat = 'txt' | 'md' | 'json';
