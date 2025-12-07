@@ -93,26 +93,7 @@ const ConfigurePanel: React.FC<ConfigurePanelProps> = ({
         hint={t.excludedFilesHint}
       />
 
-      {selectedFiles.length > 0 && (
-        <div className="my-4 p-4 border border-slate-700 rounded-lg bg-slate-900/50 flex flex-col items-center space-y-4">
-           {isLargeProject ? (
-            <p className="text-sm text-amber-400 text-center">{t.previewDisabledWarning}</p>
-          ) : (
-            <p className="text-sm text-slate-400 text-center">{t.autoPreviewNote}</p>
-          )}
-          
-          <div className="text-center w-full max-w-sm">
-              <button
-                  onClick={onCombineAndDownload}
-                  disabled={isLoading || selectedFiles.length === 0}
-                  className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-sky-600 text-white font-semibold rounded-lg shadow-md hover:bg-sky-500 disabled:bg-slate-500 disabled:cursor-not-allowed transition-colors duration-200"
-              >
-                  <DownloadIcon className="w-6 h-6" />
-                  <span>{t.combineAndSave}</span>
-              </button>
-          </div>
-        </div>
-      )}
+
 
       <LogPanel logs={logs} t={t} logContainerRef={logContainerRef} />
     </>
