@@ -56,7 +56,7 @@ const App: React.FC = () => {
     []
   );
   
-  const generatePreviewContent = useCallback(async (filesToProcess: SelectedFile[]) => {
+  const generatePreviewContent = useCallback(async (filesToProcess: SelectedFile[], format: ExportFormat) => {
     if (filesToProcess.length === 0) {
       setCombinedContent("");
       return;
@@ -70,17 +70,15 @@ const App: React.FC = () => {
       filesToProcess.map(f => f.file.text().catch(e => `Error reading ${f.name}: ${e.message}`))
     );
 
-    const content = filesToProcess
-      .map((f, i) => {
-        const header = `// START OF FILE: ${f.name}`;
-        const footer = `// END OF FILE: ${f.name}\n\n`;
-        return `${header}\n\n${fileContents[i]}\n\n${footer}`;
-      })
-      .join("");
-
-    const finalContent = `${t.outputHeader}\n\n${tree}\n\n${"=".repeat(
-      80
-    )}\n\n${content}`;
+    const projectName = rootDirectoryName || 'project';
+    const finalContent = formatContent(
+      format,
+      filesToProcess,
+      fileContents,
+      tree,
+      projectName,
+      t.outputHeader
+    );
     setCombinedContent(finalContent);
     addLog(t.logs.combinationComplete);
 
@@ -90,16 +88,16 @@ const App: React.FC = () => {
     addLog(t.logs.stats(fileCount, size, lines));
 
     setIsLoading(false);
-  }, [addLog, t.logs, t.outputHeader]);
+  }, [addLog, t.logs, t.outputHeader, rootDirectoryName]);
 
   useEffect(() => {
     const totalSize = selectedFiles.reduce((acc, f) => acc + f.size, 0);
     if (selectedFiles.length > 0 && totalSize < PREVIEW_SIZE_LIMIT) {
-      generatePreviewContent(selectedFiles);
+      generatePreviewContent(selectedFiles, exportFormat);
     } else {
       setCombinedContent("");
     }
-  }, [selectedFiles, generatePreviewContent]);
+  }, [selectedFiles, generatePreviewContent, exportFormat]);
 
   const handleFilesSelected = useCallback(
     async (files: File[]) => {
